@@ -17,15 +17,44 @@ class Episode(db.Model, SerializerMixin):
     __tablename__ = 'episodes'
 
     id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String)
+    number = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+
+    appearances = db.relationship('Appearance', backref='episode')
+    guests = association_proxy('appearances', 'guest')
+    serialize_rules = ('-guests.episode', '-appearances', '-created_at', '-updated_at')
 
 class Guest(db.Model, SerializerMixin):
     __tablename__ = 'guests'
 
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    occupation = db.Column(db.String)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+
+    appearances = db.relationship('Appearance', backref='guest')
+    episodes = association_proxy('appearances', 'episode')
+    serialize_rules = ('-episodes.guest', '-appearances', '-created_at', '-updated_at')
 
 class Appearance(db.Model, SerializerMixin):
     __tablename__ = 'appearances'
 
     id = db.Column(db.Integer, primary_key=True)
+    episode_id = db.Column(db.Integer, db.ForeignKey('episodes.id'))
+    guest_id = db.Column(db.Integer, db.ForeignKey('guests.id'))
+    rating = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 
+    serialize_rules = ('-episodes', '-guests', '-created_at', '-updated_at')
+
+    @validates('rating')
+    def validates_rating(self, key, rating):
+        if 1 <= rating <= 5:
+            return rating
+        else:
+            raise ValueError('Rating must be between 1 and 5.')
 # add any models you may need. 
